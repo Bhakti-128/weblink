@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WEBLINK</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        /* --- CORE VISUALS --- */
+        :root {
+            --neon-cyan: #00f3ff;
+            --neon-pink: #bc13fe;
+            --neon-green: #0aff0a;
+            --deep-bg: #050508;
+            --panel-bg: rgba(10, 15, 30, 0.7);
+            --border-dim: rgba(0, 243, 255, 0.15);
+            --font-head: 'Rajdhani', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+        
+        body {
+            background-color: var(--deep-bg);
+            color: #e0e0e0;
+            font-family: var(--font-head);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background-image: radial-gradient(circle at 50% 50%, #1a1a2e 0%, #000 100%);
+        }
+
+        /* --- BACKGROUND FX --- */
+        .scanlines {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.3) 50%);
+            background-size: 100% 4px; pointer-events: none; z-index: 999; opacity: 0.2;
+        }
+        .cyber-grid {
+            position: absolute; width: 200%; height: 200%; top: -50%; left: -50%;
+            background-image: 
+                linear-gradient(var(--border-dim) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border-dim) 1px, transparent 1px);
+            background-size: 40px 40px;
+            transform: perspective(500px) rotateX(60deg);
+            animation: grid-move 20s linear infinite;
+            z-index: 0; opacity: 0.15;
+        }
+
+        /* --- LAYOUT --- */
+        .app-container {
+            position: relative; z-index: 10; display: flex; flex-direction: column; height: 100%;
+            padding: 15px; backdrop-filter: blur(2px);
+        }
+
+        /* --- TOP BAR --- */
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding-bottom: 15px; margin-bottom: 10px; border-bottom: 1px solid var(--border-dim);
+        }
+        .brand { display: flex; align-items: center; gap: 15px; }
+        .logo-text { font-size: 28px; font-weight: 700; letter-spacing: 2px; color: white; }
+        .logo-text span { color: var(--neon-cyan); text-shadow: 0 0 10px var(--neon-cyan); }
+        
+        .system-stats { display: flex; gap: 20px; font-family: var(--font-code); font-size: 12px; color: var(--neon-cyan); align-items: center; }
+        .pulsing-dot { width: 8px; height: 8px; background: var(--neon-green); border-radius: 50%; box-shadow: 0 0 8px var(--neon-green); animation: blink 1s infinite; }
+
+        .mode-tabs { display: flex; gap: 5px; }
+        .mode-tab { padding: 4px 12px; font-size: 11px; cursor: pointer; border: 1px solid var(--border-dim); color: #666; transition: 0.3s; }
+        .mode-tab.active { background: var(--neon-pink); color: white; border-color: var(--neon-pink); box-shadow: 0 0 10px var(--neon-pink); }
+
+        /* --- MAIN AREA --- */
+        .main-grid {
+            display: grid; grid-template-columns: 320px 1fr; gap: 20px;
+            flex: 1; min-height: 0; margin-bottom: 20px;
+        }
+
+        /* --- LEFT PANEL --- */
+        .left-panel { display: flex; flex-direction: column; gap: 15px; overflow-y: auto; padding-right: 5px; }
+        
+        .neural-wrapper {
+            background: var(--panel-bg); border: 1px solid var(--border-dim); height: 140px;
+            display: flex; flex-direction: column; position: relative;
+        }
+        .panel-title { font-size: 10px; color: var(--neon-cyan); padding: 5px; border-bottom: 1px solid var(--border-dim); letter-spacing: 1px; }
+        #brain-canvas { width: 100%; height: 100%; }
+
+        .agent-card {
+            background: var(--panel-bg); border: 1px solid var(--border-dim); padding: 12px;
+            position: relative; transition: 0.3s;
+        }
+        .agent-card::before { content: ''; position: absolute; top: 0; left: 0; width: 2px; height: 100%; background: var(--neon-cyan); opacity: 0.3; transition: 0.3s; }
+        .agent-card.active { border-color: var(--neon-cyan); box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.1); }
+        .agent-card.active::before { opacity: 1; box-shadow: 0 0 10px var(--neon-cyan); }
+        
+        .agent-header { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+        .agent-icon { font-size: 22px; color: #666; transition: 0.3s; }
+        .agent-card.active .agent-icon { color: var(--neon-cyan); text-shadow: 0 0 10px var(--neon-cyan); }
+        .agent-name { font-weight: 700; font-size: 15px; letter-spacing: 1px; }
+        .agent-status { font-size: 10px; font-family: var(--font-code); color: #666; }
+        .agent-card.active .agent-status { color: var(--neon-cyan); }
+
+        /* --- RIGHT PANEL (TERMINAL) --- */
+        .terminal-container {
+            background: rgba(5, 8, 15, 0.9); border: 1px solid var(--border-dim);
+            display: flex; flex-direction: column; position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        .terminal-header {
+            background: rgba(255,255,255,0.03); padding: 8px 15px;
+            font-family: var(--font-code); font-size: 12px; color: #888;
+            border-bottom: 1px solid var(--border-dim); display: flex; justify-content: space-between;
+        }
+        .console-output {
+            flex: 1; padding: 20px; font-family: var(--font-code); font-size: 13px; color: #a0a0a0;
+            overflow-y: auto; line-height: 1.6;
+        }
+        .log-entry { margin-bottom: 4px; display: flex; gap: 10px; opacity: 0; animation: fadeIn 0.2s forwards; }
+        .log-time { color: #555; min-width: 70px; }
+        .log-prefix { color: var(--neon-pink); font-weight: bold; }
+        .log-info { color: var(--neon-cyan); }
+        .log-success { color: var(--neon-green); }
+        .log-warn { color: #ffbd2e; }
+        .log-user { color: white; font-weight: bold; text-shadow: 0 0 5px white; }
+
+        /* --- INPUT AREA --- */
+        .input-wrapper {
+            background: rgba(0,0,0,0.6); border: 1px solid var(--border-dim); padding: 15px;
+            display: flex; align-items: center; gap: 15px; position: relative;
+        }
+        .input-wrapper::before {
+            content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 2px;
+            background: linear-gradient(90deg, var(--neon-cyan), transparent);
+        }
+        .prompt-char { font-family: var(--font-code); color: var(--neon-green); font-size: 18px; font-weight: bold; animation: blink 1s infinite; }
+        .command-input {
+            flex: 1; background: transparent; border: none; color: white;
+            font-family: var(--font-code); font-size: 16px; letter-spacing: 0.5px;
+        }
+        .command-input::placeholder { color: #555; }
+        .ignite-btn {
+            background: transparent; color: var(--neon-cyan); border: 1px solid var(--neon-cyan);
+            padding: 10px 30px; font-family: var(--font-head); font-size: 16px; font-weight: 700;
+            letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: 0.3s;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        }
+        .ignite-btn:hover { background: var(--neon-cyan); color: #000; box-shadow: 0 0 20px var(--neon-cyan); }
+
+        /* --- CODE MODAL --- */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 2000; align-items: center; justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background: #09090b; border: 1px solid var(--neon-cyan); width: 800px; max-width: 90vw;
+            box-shadow: 0 0 40px rgba(0, 243, 255, 0.15); display: flex; flex-direction: column;
+            animation: fadeIn 0.3s ease-out;
+        }
+        .modal-header {
+            background: rgba(0, 243, 255, 0.05); padding: 12px 20px; border-bottom: 1px solid var(--border-dim);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .file-tab {
+            font-family: var(--font-code); font-size: 12px; color: white;
+            background: rgba(255,255,255,0.1); padding: 5px 15px; border-radius: 4px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .modal-body {
+            background: #0d1117; padding: 20px; height: 400px; overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #a5d6ff; line-height: 1.6;
+            white-space: pre-wrap; border-left: 3px solid var(--neon-pink);
+        }
+        /* Blinking cursor at end of code */
+        .modal-body::after { content: '▋'; color: var(--neon-cyan); animation: blink 0.8s infinite; }
+        
+        .modal-footer {
+            padding: 15px; border-top: 1px solid var(--border-dim); display: flex; justify-content: flex-end; gap: 15px;
+            background: rgba(0,0,0,0.3);
+        }
+        .action-btn {
+            background: var(--neon-cyan); color: black; border: none; padding: 8px 20px;
+            font-family: var(--font-head); font-weight: bold; cursor: pointer; text-transform: uppercase;
+        }
+        .action-btn.secondary { background: transparent; border: 1px solid #666; color: #888; }
+        .action-btn.secondary:hover { color: white; border-color: white; }
+
+        @keyframes grid-move { 0% { background-position: 0 0; } 100% { background-position: 0 40px; } }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+    </style>
+</head>
+<body>
+
+    <div class="scanlines"></div>
+    <div class="cyber-grid"></div>
+
+    <div class="app-container">
+        
+        <div class="top-bar">
+            <div class="brand">
+                <i class="ph ph-hexagon" style="font-size: 32px; color: var(--neon-cyan);"></i>
+                <div class="logo-text">WEBLINK</div>
+            </div>
+            
+            <div class="system-stats">
+                <span>CPU: <span id="cpu-val">12</span>%</span>
+                <span>MEM: 4.2GB</span>
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <div class="pulsing-dot"></div>
+                    <span>SYSTEM ONLINE</span>
+                </div>
+                <span id="clock" style="color:white; font-weight:bold;">00:00:00</span>
+            </div>
+
+            <div class="mode-tabs">
+                <div class="mode-tab active">DEV</div>
+                <div class="mode-tab">SECURE</div>
+                <div class="mode-tab">SWARM</div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            
+            <div class="left-panel">
+                <div class="neural-wrapper">
+                    <div class="panel-title">NEURAL CORE ACTIVITY</div>
+                    <canvas id="brain-canvas"></canvas>
+                </div>
+
+                <div class="agent-card" id="agent-orchestrator">
+                    <div class="agent-header">
+                        <i class="ph ph-gear-six agent-icon"></i>
+                        <div class="agent-name">ORCHESTRATOR</div>
+                    </div>
+                    <div class="agent-status" id="status-orchestrator">STANDBY // IDLE</div>
+                </div>
+
+                <div class="agent-card" id="agent-codegen">
+                    <div class="agent-header">
+                        <i class="ph ph-code agent-icon"></i>
+                        <div class="agent-name">CODE GENESIS</div>
+                    </div>
+                    <div class="agent-status" id="status-codegen">OFFLINE</div>
+                </div>
+
+                <div class="agent-card" id="agent-security">
+                    <div class="agent-header">
+                        <i class="ph ph-shield-check agent-icon"></i>
+                        <div class="agent-name">NET SECURITY</div>
+                    </div>
+                    <div class="agent-status" id="status-security">OFFLINE</div>
+                </div>
+
+                <div class="agent-card" id="agent-debug">
+                    <div class="agent-header">
+                        <i class="ph ph-bug-beetle agent-icon"></i>
+                        <div class="agent-name">SWARM DEBUG</div>
+                    </div>
+                    <div class="agent-status" id="status-debug">OFFLINE</div>
+                </div>
+            </div>
+
+            <div class="terminal-container">
+                <div class="terminal-header">
+                    <span>root@weblink:~</span>
+                    <span>bash --login</span>
+                </div>
+                <div class="console-output" id="console-output"></div>
+            </div>
+        </div>
+
+        <div class="input-wrapper">
+            <div class="prompt-char">&gt;_</div>
+            <input type="text" class="command-input" id="user-prompt" placeholder="Describe your application requirement (e.g., 'Build a secure login page')..." autocomplete="off">
+            <button class="ignite-btn" onclick="processInput()">IGNITE SYSTEM</button>
+        </div>
+
+    </div>
+
+    <div id="output-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="file-tab">
+                    <i class="ph ph-file-tsx"></i>
+                    <span>generated_auth_login.tsx</span>
+                </div>
+                <i class="ph ph-x" onclick="closeModal()" style="cursor:pointer; color:#666; font-size:20px;"></i>
+            </div>
+            <div class="modal-body" id="code-display"></div>
+            
+            <div class="modal-footer">
+                <button class="action-btn secondary" onclick="closeModal()">Close</button>
+                <button class="action-btn"> <i class="ph ph-rocket-launch"></i> Deploy to Sandbox</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA: THE SAMPLE CODE TO BE "TYPED" ---
+        const SAMPLE_CODE = `import React, { useState } from 'react';
+import { useAuth } from '@/hooks/auth';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
+export default function SecureLoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
+
+  // SECURITY: Input sanitization and rate limiting check
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return;
+    
+    setIsLoading(true);
+    try {
+      // AutoDev Secure Protocol V2
+      await login({ email, password });
+    } catch (error) {
+      console.error("Auth Failed", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gray-950">
+      <div className="w-full max-w-md space-y-8 rounded-lg border border-cyan-500/20 bg-gray-900 p-8 shadow-2xl">
+        <div className="text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-white">
+            WEBLINK <span className="text-cyan-400">ACCESS</span>
+          </h2>
+          <p className="mt-2 text-sm text-gray-400">Enter credentials to access neural core.</p>
+        </div>
+        
+        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+          <div className="space-y-4">
+            <Input 
+               type="email" 
+               placeholder="admin@weblink.ai" 
+               value={email}
+               onChange={(e) => setEmail(e.target.value)}
+               className="border-cyan-500/30 bg-gray-950 text-white"
+            />
+            <Input 
+               type="password" 
+               placeholder="••••••••" 
+               value={password}
+               onChange={(e) => setPassword(e.target.value)}
+               className="border-cyan-500/30 bg-gray-950 text-white"
+            />
+          </div>
+          <Button 
+            className="w-full bg-cyan-500 hover:bg-cyan-400 text-black font-bold"
+            disabled={isLoading}
+          >
+            {isLoading ? "AUTHENTICATING..." : "ESTABLISH LINK"}
+          </Button>
+        </form>
+      </div>
+    </div>
+  );
+}`;
+
+        // --- CLOCK ---
+        function updateTime() {
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-GB');
+            if(Math.random() > 0.5) document.getElementById('cpu-val').innerText = Math.floor(Math.random() * 30) + 10;
+        }
+        setInterval(updateTime, 1000); updateTime();
+
+        // --- BRAIN CANVAS ---
+        const canvas = document.getElementById('brain-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, particles = [];
+
+        function resizeCanvas() {
+            width = canvas.width = canvas.parentElement.offsetWidth;
+            height = canvas.height = canvas.parentElement.offsetHeight;
+        }
+        window.addEventListener('resize', resizeCanvas); resizeCanvas();
+
+        class Particle {
+            constructor() { this.x = Math.random()*width; this.y = Math.random()*height; this.vx = (Math.random()-0.5)*1.5; this.vy = (Math.random()-0.5)*1.5; }
+            update() { this.x+=this.vx; this.y+=this.vy; if(this.x<0||this.x>width) this.vx*=-1; if(this.y<0||this.y>height) this.vy*=-1; }
+            draw() { ctx.fillStyle='#00f3ff'; ctx.beginPath(); ctx.arc(this.x,this.y,1.5,0,Math.PI*2); ctx.fill(); }
+        }
+        for(let i=0; i<25; i++) particles.push(new Particle());
+
+        function animateBrain() {
+            ctx.clearRect(0,0,width,height); ctx.strokeStyle='rgba(0,243,255,0.15)'; ctx.lineWidth=1;
+            particles.forEach(p => { p.update(); p.draw(); });
+            for(let i=0; i<particles.length; i++) {
+                for(let j=i; j<particles.length; j++) {
+                    let dx = particles[i].x - particles[j].x; let dy = particles[i].y - particles[j].y;
+                    if(Math.sqrt(dx*dx+dy*dy) < 60) { ctx.beginPath(); ctx.moveTo(particles[i].x,particles[i].y); ctx.lineTo(particles[j].x,particles[j].y); ctx.stroke(); }
+                }
+            }
+            requestAnimationFrame(animateBrain);
+        }
+        animateBrain();
+
+        // --- BOOT SEQUENCE (New Slow Init) ---
+        window.onload = async () => {
+            await delay(500);
+            addLog('System mounted successfully.', 'info', '[INIT]');
+            await delay(1200);
+            addLog('Awaiting user input sequence...', 'warn', '[WAIT]');
+        };
+
+        // --- CORE LOGIC ---
+        const consoleOutput = document.getElementById('console-output');
+        const inputField = document.getElementById('user-prompt');
+        let isProcessing = false;
+
+        inputField.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") processInput();
+        });
+
+        function addLog(text, type='info', customPrefix=null) {
+            const time = new Date().toLocaleTimeString('en-GB', {hour12: false});
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            
+            let typeClass = 'log-info';
+            if(type === 'success') typeClass = 'log-success';
+            if(type === 'warn') typeClass = 'log-warn';
+            if(type === 'sys') typeClass = 'log-prefix';
+            if(type === 'user') typeClass = 'log-user';
+
+            let prefixDisplay = `[${time}]`;
+            if (customPrefix) prefixDisplay = customPrefix;
+
+            div.innerHTML = `<span class="log-time">${prefixDisplay}</span> <span class="${typeClass}">${text}</span>`;
+            consoleOutput.appendChild(div);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        async function processInput() {
+            if(isProcessing) return;
+            const userText = inputField.value.trim();
+            if(!userText) return;
+
+            isProcessing = true;
+            inputField.disabled = true; 
+            
+            // 1. Log User Input
+            addLog(`> ${userText}`, 'user');
+            
+            // 2. Orchestrator (SLOWER)
+            await delay(1500); // Wait 1.5s before starting
+            activateAgent('orchestrator', 'PARSING REQ...');
+            addLog('Orchestrator: Parsing user requirement...', 'sys');
+            
+            await delay(2000); // Wait 2s for "Thinking"
+            addLog(`Identified goal: "${userText}"`, 'info');
+            updateAgentStatus('orchestrator', 'TASK DISTRIBUTED', true);
+
+            // 3. Code Gen (SLOWER)
+            await delay(1500);
+            activateAgent('codegen', 'GENERATING ARCHITECTURE...');
+            addLog('Code Genesis: Generating file structure...', 'info');
+            addLog('Creating /src/auth/login.tsx...', 'info');
+            
+            await delay(2500); // Wait 2.5s for "Writing"
+            updateAgentStatus('codegen', 'WRITING CODE...', true);
+            addLog('Writing boilerplate code...', 'success');
+
+            // 4. Security (SLOWER)
+            await delay(1500);
+            activateAgent('security', 'SCANNING FOR INJECTION...');
+            addLog('Net Security: Scanning prompt for vulnerabilities...', 'warn');
+            
+            await delay(2000); // Wait 2s for "Scanning"
+            updateAgentStatus('security', 'CLEAN // APPROVED', true);
+            addLog('Security check passed. No injection vectors found.', 'success');
+
+            // 5. Debug (SLOWER)
+            await delay(1500);
+            activateAgent('debug', 'VERIFYING BUILD...');
+            addLog('Swarm Debug: Compiling assets...', 'info');
+            updateAgentStatus('debug', 'BUILD STABLE', true);
+
+            // Finish
+            await delay(1000);
+            addLog('TASK COMPLETE. DEPLOYING ARTIFACT...', 'success');
+            
+            // --- TRIGGER THE CODE REVEAL ---
+            await delay(1500);
+            showCodeModal();
+            
+            // Reset
+            inputField.value = '';
+            inputField.disabled = false;
+            isProcessing = false;
+        }
+
+        function activateAgent(id, text) {
+            document.getElementById(`agent-${id}`).classList.add('active');
+            document.getElementById(`status-${id}`).innerText = text;
+        }
+        function updateAgentStatus(id, text, success) {
+            const el = document.getElementById(`status-${id}`);
+            el.innerText = text;
+            if(success) el.style.color = 'var(--neon-green)';
+        }
+        function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+        // --- TYPEWRITER EFFECT FOR MODAL ---
+        function showCodeModal() {
+            const modal = document.getElementById('output-modal');
+            const display = document.getElementById('code-display');
+            
+            modal.style.display = 'flex';
+            display.textContent = ''; // Clear previous
+            
+            let i = 0;
+            const speed = 5; // Typing speed
+            
+            function typeWriter() {
+                if (i < SAMPLE_CODE.length) {
+                    display.textContent += SAMPLE_CODE.charAt(i);
+                    display.scrollTop = display.scrollHeight; // Auto scroll
+                    i++;
+                    setTimeout(typeWriter, speed);
+                }
+            }
+            typeWriter();
+        }
+
+        function closeModal() {
+            document.getElementById('output-modal').style.display = 'none';
+        }
+
+    </script>
+</body>
+</html>
