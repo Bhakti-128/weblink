@@ -457,35 +457,35 @@ export default function SecureLoginPage() {
             // 1. Log User Input
             addLog(`> ${userText}`, 'user');
             
-            // 2. Orchestrator (SLOWER)
-            await delay(1500); // Wait 1.5s before starting
+            // 2. Orchestrator 
+            await delay(1500); 
             activateAgent('orchestrator', 'PARSING REQ...');
             addLog('Orchestrator: Parsing user requirement...', 'sys');
             
-            await delay(2000); // Wait 2s for "Thinking"
+            await delay(2000); 
             addLog(`Identified goal: "${userText}"`, 'info');
             updateAgentStatus('orchestrator', 'TASK DISTRIBUTED', true);
 
-            // 3. Code Gen (SLOWER)
+            // 3. Code Gen 
             await delay(1500);
             activateAgent('codegen', 'GENERATING ARCHITECTURE...');
             addLog('Code Genesis: Generating file structure...', 'info');
             addLog('Creating /src/auth/login.tsx...', 'info');
             
-            await delay(2500); // Wait 2.5s for "Writing"
+            await delay(2500); 
             updateAgentStatus('codegen', 'WRITING CODE...', true);
             addLog('Writing boilerplate code...', 'success');
 
-            // 4. Security (SLOWER)
+            // 4. Security 
             await delay(1500);
             activateAgent('security', 'SCANNING FOR INJECTION...');
             addLog('Net Security: Scanning prompt for vulnerabilities...', 'warn');
             
-            await delay(2000); // Wait 2s for "Scanning"
+            await delay(2000); 
             updateAgentStatus('security', 'CLEAN // APPROVED', true);
             addLog('Security check passed. No injection vectors found.', 'success');
 
-            // 5. Debug (SLOWER)
+            // 5. Debug 
             await delay(1500);
             activateAgent('debug', 'VERIFYING BUILD...');
             addLog('Swarm Debug: Compiling assets...', 'info');
